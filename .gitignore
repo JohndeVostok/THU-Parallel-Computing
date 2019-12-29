@@ -31,4 +31,16 @@
 *.out
 *.app
 
+# Parallel exercise
 data
+
+# Reduction
+reduction/Alphas.mat
+reduction/AlphasMPI.mat
+reduction/Betas.mat
+reduction/BetasMPI.mat
+reduction/Gammas.mat
+reduction/GammasMPI.mat
+seq
+mpi
+matrix
