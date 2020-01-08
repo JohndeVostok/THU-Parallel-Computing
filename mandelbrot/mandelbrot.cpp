@@ -1,145 +1,88 @@
-#include <stdlib.h>
-#include <GL/glut.h>
+#include <cstdio>
+#include <cstdint>
+#include <cstdlib>
+#include <omp.h>
 
-/* Defaut data via command line */
-/* Can enter other values via command line arguments */
+#include <chrono>
 
-#define CENTERX -0.5
-#define CENTERY 0.5
-#define HEIGHT 0.5
-#define WIDTH 0.5
-#define MAX_ITER 100
+const float CENTERX = -0.5, CENTERY = 0.5, HEIGHT = 0.5, WIDTH=0.5;
+const uint32_t MAX_ITER = 100, M = 512, N = 512;
+uint8_t image[N][M];
 
-/* N x M array to be generated */
+class complex {
+public:
+    float u, v;
 
-#define N 500
-#define M 500
-
-float height = HEIGHT; /* size of window in complex plane */
-float width = WIDTH;
-float cx = CENTERX; /* center of window in complex plane */
-float cy = CENTERY; 
-int max_iter = MAX_ITER; /* number of interations per point */
-
-int n=N;
-int m=M;
-
-/* Use unsigned bytes for image */
-
-GLubyte image[N][M];
-
-/* Complex data type and complex add, mult, and magnitude functions */
-/* Probably not worth overhead */
-
-typedef float complex[2];
-
-void add(complex a, complex b, complex p)
-{
-    p[0]=a[0]+b[0];
-    p[1]=a[1]+b[1];
-}
-
-void mult(complex a, complex b, complex p)
-{
-    p[0]=a[0]*b[0]-a[1]*b[1];
-    p[1]=a[0]*b[1]+a[1]*b[0];
-}
-
-float mag2(complex a)
-{
-    return(a[0]*a[0]+a[1]*a[1]);
-}
-
-void form(float a, float b, complex p)
-{
-    p[0]=a;
-    p[1]=b;
-}
-
-void display()
-{
-    glClear(GL_COLOR_BUFFER_BIT);
-    glDrawPixels(n,m,GL_COLOR_INDEX, GL_UNSIGNED_BYTE, image);
-    glutSwapBuffers();
-}
-
-
-void myReshape(int w, int h)
-{
-    glViewport(0, 0, w, h);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    if (w <= h)
-    gluOrtho2D(0.0, 0.0, (GLfloat) n, (GLfloat) m* (GLfloat) h / (GLfloat) w);
-    else
-    gluOrtho2D(0.0, 0.0, (GLfloat) n * (GLfloat) w / (GLfloat) h,(GLfloat) m);
-    glMatrixMode(GL_MODELVIEW);
-    display();
-}
-
-void myinit()
-{
-    float redmap[256], greenmap[256],bluemap[256];
-    int i;
-
-    glClearColor (1.0, 1.0, 1.0, 1.0);
-    gluOrtho2D(0.0, 0.0, (GLfloat) n, (GLfloat) m);
-
-/* Define pseudocolor maps, ramps for red and blue,
-   random for green */
-
-
-    for(i=0;i<256;i++) 
-    {
-         redmap[i]=i/255.;
-         greenmap[i]=drand48();
-         bluemap[i]=1.0-i/255.;
+    complex () {
+        u = 0;
+        v = 0;
     }
 
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_R, 256, redmap);
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_G, 256, greenmap);
-    glPixelMapfv(GL_PIXEL_MAP_I_TO_B, 256, bluemap); 
-}
+    complex (float uu, float vv) {
+        u = uu;
+        v = vv;
+    }
 
+    ~complex() {}
+
+    complex operator + (complex &x) {
+        float uy = u + x.u;
+        float vy = v + x.v;
+        return complex(uy, vy);
+    }
+
+    complex operator * (complex &x) {
+        float uy = u * x.u - v * x.v;
+        float vy = u * x.v + v * x.u;
+        return complex(uy, vy);
+    }
+
+    float mag2() {
+        return u * u + v * v;
+    }
+};
 
 int main(int argc, char *argv[]) {
     float x, y, v;
-    complex c0, c, d;
+    uint32_t max_iter = MAX_ITER, nthread = omp_get_num_procs();
 
-    if (argc > 1) cx = atof(argv[1]); /* center x */
-    if (argc > 2) cy = atof(argv[2]);  /* center y */
-    if (argc > 3) height = width = atof(argv[3]); /* rectangle height and width */
-    if (argc > 4) max_iter = atoi(argv[4]); /* maximum iterations */
-
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-            float x = (i + 0.5) * width / n + cx - width / 2;
-            float y = (j + 0.5) * height / m + cy - height / 2;
-            form(0,0,c);
-            form(x,y,c0);
-
-            for (int k = 0; k < max_iter; k++) {
-                mult(c,c,d);
-                add(d,c0,c);
-                v = mag2(c);
-                if (v > 4.0) break; /* assume not in set if mag > 4 */
-            }
-
-/* assign gray level to point based on its magnitude */
-            if (v > 1.0) v=1.0; /* clamp if > 1 */
-            image[i][j]=255*v;
-        }
+    float cx = CENTERX, cy = CENTERY, w = WIDTH, h = HEIGHT;
+    if (argc > 1) {
+        cx = atof(argv[1]);
+    }
+    if (argc > 2) {
+        cy = atof(argv[2]);
+    }
+    if (argc > 3) {
+        w = h = atof(argv[3]);
+    }
+    if (argc > 4) {
+        max_iter = atoi(argv[4]);
+    }
+    if (argc > 5) {
+        nthread = atoi(argv[5]);
     }
 
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB );
-    glutInitWindowSize(N, M);
-    glutCreateWindow("mandlebrot");
-    myinit();
-    glutReshapeFunc(myReshape);
-    glutDisplayFunc(display);
+    auto st = std::chrono::system_clock::now();
+#pragma omp parallel for num_threads(nthread)
+    for (int i = 0; i < N * M; i++)
+    {
+        float x = ((i / M) + 0.5) * w / N + cx - w / 2;
+        float y = ((i % M) + 0.5) * h / M + cy - h / 2;
+        complex c, c0(x, y);
+        float v = 0;
 
-    glutMainLoop();
-
+        for (int k = 0; k < max_iter; k++) {
+            c = c * c + c0;
+            if (c.mag2() > 4.0) break;
+        }
+        v = c.mag2();
+        if (v > 1.0) {
+            v = 1.0;
+        }
+        image[i / M][i % M] = 255 * v;
+    }
+    auto ed = std::chrono::system_clock::now();
+    printf("time: %.6lfs\n", 1e-6*(uint64_t)std::chrono::duration_cast<std::chrono::microseconds>(ed - st).count());
     return 0;
 }
