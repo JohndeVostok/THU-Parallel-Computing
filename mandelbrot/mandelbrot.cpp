@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <GL/glut.h>
 
@@ -20,7 +19,7 @@ float height = HEIGHT; /* size of window in complex plane */
 float width = WIDTH;
 float cx = CENTERX; /* center of window in complex plane */
 float cy = CENTERY; 
-int max = MAX_ITER; /* number of interations per point */
+int max_iter = MAX_ITER; /* number of interations per point */
 
 int n=N;
 int m=M;
@@ -61,6 +60,7 @@ void display()
 {
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawPixels(n,m,GL_COLOR_INDEX, GL_UNSIGNED_BYTE, image);
+    glutSwapBuffers();
 }
 
 
@@ -102,43 +102,34 @@ void myinit()
 }
 
 
-main(int argc, char *argv[])
-{
-    int i, j, k;
+int main(int argc, char *argv[]) {
     float x, y, v;
     complex c0, c, d;
 
-    if(argc>1) cx = atof(argv[1]); /* center x */
-    if(argc>2) cy = atof(argv[2]);  /* center y */
-    if(argc>3) height=width=atof(argv[3]); /* rectangle height and width */
-    if(argc>4) max=atoi(argv[4]); /* maximum iterations */
+    if (argc > 1) cx = atof(argv[1]); /* center x */
+    if (argc > 2) cy = atof(argv[2]);  /* center y */
+    if (argc > 3) height = width = atof(argv[3]); /* rectangle height and width */
+    if (argc > 4) max_iter = atoi(argv[4]); /* maximum iterations */
 
-    for (i=0; i<n; i++) for(j=0; j<m; j++) 
-    {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            float x = (i + 0.5) * width / n + cx - width / 2;
+            float y = (j + 0.5) * height / m + cy - height / 2;
+            form(0,0,c);
+            form(x,y,c0);
 
-/* starting point */
-
-    x= i *(width/(n-1)) + cx -width/2;
-    y= j *(height/(m-1)) + cy -height/2;
-
-    form(0,0,c);
-    form(x,y,c0);
-
-/* complex iteration */
-
-    for(k=0; k<max; k++)
-        {
-        mult(c,c,d);
-        add(d,c0,c);
-        v=mag2(c);
-        if(v>4.0) break; /* assume not in set if mag > 4 */
-        }
+            for (int k = 0; k < max_iter; k++) {
+                mult(c,c,d);
+                add(d,c0,c);
+                v = mag2(c);
+                if (v > 4.0) break; /* assume not in set if mag > 4 */
+            }
 
 /* assign gray level to point based on its magnitude */
-        if(v>1.0) v=1.0; /* clamp if > 1 */
-        image[i][j]=255*v;
+            if (v > 1.0) v=1.0; /* clamp if > 1 */
+            image[i][j]=255*v;
+        }
     }
-
 
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB );
@@ -150,5 +141,5 @@ main(int argc, char *argv[])
 
     glutMainLoop();
 
-
+    return 0;
 }
