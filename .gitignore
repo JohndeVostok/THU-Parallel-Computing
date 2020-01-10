@@ -44,3 +44,8 @@ reduction/GammasMPI.mat
 seq
 mpi
 matrix
+
+# CG
+cg/gen
+cg/main
+cg/mat.txt
