@@ -33,6 +33,7 @@
 
 # Parallel exercise
 data
+parallel
 
 # Reduction
 reduction/Alphas.mat
