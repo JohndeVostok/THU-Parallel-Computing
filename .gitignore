@@ -46,6 +46,9 @@ seq
 mpi
 matrix
 
+# Mandelbrot
+mandelbrot/mandelbrot
+
 # CG
 cg/gen
 cg/main
