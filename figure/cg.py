@@ -20,10 +20,10 @@ if __name__ == "__main__":
 
     x = []
     y = []
-    with open("../mandelbrot/res.txt", "r") as f:
+    with open("../cg/res.txt", "r") as f:
         lines = f.readlines()
 
-    for line in lines[2:]:
+    for line in lines[1:]:
         line = line.split()
         x.append(float(line[0]))
         y.append(float(line[1]))
@@ -31,8 +31,8 @@ if __name__ == "__main__":
     y0 = []
     y1 = []
     for t in y:
-        y0.append(t / 40)
-        y1.append(38.65 / t / 10)
+        y0.append(t / 50)
+        y1.append(43.92 / t / 7)
 
     fig, ax0 = plt.subplots()
     ax1 = ax0.twinx()
@@ -43,14 +43,14 @@ if __name__ == "__main__":
     ax1.set_ylabel("Performance")
     plt.xticks([2 ** t for t in range(len(x))])
     ax0.set_yticks([0.2 * t for t in range(6)])
-    ax1.set_yticks([0.2 * t for t in range(6)])
-    ax0.set_yticklabels([8 * t for t in range(6)])
-    ax1.set_yticklabels([2 * t for t in range(6)])
+    ax1.set_yticks([t / 7 for t in range(8)])
+    ax0.set_yticklabels([10 * t for t in range(6)])
+    ax1.set_yticklabels(range(8))
     plt.xlim(1, 16)
     ax0.set_ylim(0, 1)
     ax1.set_ylim(0, 1)
     plt.legend(loc="upper center", ncol=2, edgecolor='k', shadow=False, framealpha=1)
     fig.tight_layout()
-    plt.savefig('mandelbrot_scale' + '.png', bbox_inches='tight')
+    plt.savefig('cg_scale' + '.png', bbox_inches='tight')
     plt.show()
 
