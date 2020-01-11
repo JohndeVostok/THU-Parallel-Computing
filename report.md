@@ -29,10 +29,10 @@
 ### 执行
     代码: parallel.cpp
     
-    ```shell
-        mpicxx --std=c++11 parallel.cpp -o parallel
-        mpirun -np 8 parallel
-    ```
+```shell
+    mpicxx --std=c++11 parallel.cpp -o parallel
+    mpirun -np 8 parallel
+```
 
     注意: 程序由于需要写文件对比，因此执行只能在一台机器上执行,一定不可以在多个机器上执行。
 
@@ -55,10 +55,10 @@
     代码: reduction_mpi.cpp
     我们将测试过程写入脚本test.sh
 
-    ```shell
-        cd reduction
-        ./test.sh
-    ```
+```shell
+    cd reduction
+    ./test.sh
+```
 
     输出"VALID!"证明验证成功。
 
@@ -78,21 +78,59 @@
 ### 执行
     代码: mandelbrot.cpp
 
-    ```shell
-        g++ --std=c++11 -fopenmp mandelbrot.cpp -o mandelbrot
-        ./mandelbrot -0.5 0.5 0.5 10000 1
-        ./mandelbrot -0.5 0.5 0.5 10000 2
-        ./mandelbrot -0.5 0.5 0.5 10000 4
-        ./mandelbrot -0.5 0.5 0.5 10000 8 
-    ```
+```shell
+    cd mandelbrot
+    g++ --std=c++11 -fopenmp mandelbrot.cpp -o mandelbrot
+    ./mandelbrot -0.5 0.5 0.5 10000 1
+    ./mandelbrot -0.5 0.5 0.5 10000 2
+    ./mandelbrot -0.5 0.5 0.5 10000 4
+    ./mandelbrot -0.5 0.5 0.5 10000 8 
+```
 
 ### 结论
-seq: 38.650
-par:
-1: 37.390
-2: 26.164
-4: 14.180
-8: 7.599
-16: 4.217
+    程序的运行结果图如下，此结果不受并行化影响。
 
-![mandelbrot_scale](figure/mandelbrot.pdf)
+![mandelbrot_res](figure/mandelbrot_res.png)
+
+    可扩展性上，并行化前的程序在指定迭代次数上限为10000次的时候，运行时间为38.650s。在并行化后，随核数变化为
+
+|Core|Time(s)|
+|-|-|
+|1|7.390|
+|2|26.164|
+|4|14.180|
+|8|7.599|
+|16|4.217|
+
+![mandelbrot_scale](figure/mandelbrot.png)
+
+我们可以看出，我们的并行程序有接近线性的可扩展性。
+
+## V. 共轭梯度求解器
+### 任务
+    1. 实现一个共轭梯度求解器，解决稀疏矩阵求解问题
+    2. 将求解器并行化
+    3. 比较串行算法与并行算法的性能
+
+### 实现
+    首先，这一求解器只能解决对称阵的问题，因此我们设计矩阵生成器，不仅需要考虑矩阵的大小，同时还需要考虑矩阵的稀疏度。特别地，在稀疏度较高(有值的数比较少)的情况下，我们不能保证我们生成的矩阵是有解的，而稀疏度特别高的情况下，程序运行时间会非常短，也不存在并行优化的意义。因此，我们的测试在稀疏度不特别高，但又和稠密阵明显不同的条件下进行(如10%)。这种情况下，我们的生成方法无解的情况较少，因此可以正常实验。
+
+    我们发现，计算过程中，包含两个SPMV(稀疏矩阵向量乘)和若干个向量点积。我们选择对SPMV进行优化，因为这一过程计算量要比向量点积大得多。我们对这些稀疏的点进行划分，分到不同的线程中进行计算，最后再求和。
+
+### 执行
+    代码: main.cpp
+
+```shell
+    cd cg
+    g++ --std=c++11 gen.cpp -o gen
+    ./gen 2048 0.1
+    g++ --std=c++11 -fopenmp main.cpp -o main
+    ./main 1
+    ./main 2
+    ./main 4
+    ./main 8
+    ./main 16
+```
+
+### 结论
+    
