@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
             a[i][j] = a[j][i];
         }
         for (int j = i; j < n; j++) {
-            if (rand() % 100 < 100 * r) {
+            if (rand() % 1000000 < 1000000 * r) {
                 a[i][j] = rand() % 100 + 1;
             } else {
                 a[i][j] = 0;

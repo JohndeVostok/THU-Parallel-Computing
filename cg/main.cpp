@@ -1,10 +1,15 @@
 #include <cstdio>
+#include <cstdlib>
 #include <cstdint>
 #include <vector>
 #include <chrono>
 
+#include <omp.h>
+
 const double eps = 0.00001;
 const double thresh = 0.1;
+
+int nthread;
 
 class smatrix {
 public:
@@ -33,10 +38,20 @@ public:
         if (v.size() != n) {
             return -1;
         }
+        // int nthread = omp_get_num_procs();
+        std::vector<std::vector<double>> tmp(nthread, std::vector<double>(n));
+#pragma omp parallel for num_threads(nthread)
+        for (int i = 0; i < nodes.size(); i++)
+        {
+            auto &node = nodes[i];
+            tmp[omp_get_thread_num()][node.y] += v[node.x] * node.v;
+        }
         res.clear();
         res.resize(n, 0);
-        for (auto &node : nodes) {
-            res[node.y] += v[node.x] * node.v;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < nthread; j++) {
+                res[i] += tmp[j][i];
+            }
         }
         return 0;
     }
@@ -45,33 +60,39 @@ public:
         if (v.size() != n) {
             return -1;
         }
+        // int nthread = omp_get_num_procs();
+        std::vector<std::vector<double>> tmp(nthread, std::vector<double>(n));
+#pragma omp parallel for num_threads(nthread)
+        for (int i = 0; i < nodes.size(); i++)
+        {
+            auto &node = nodes[i];
+            // printf("%d %d %d\n", node.x, node.y, omp_get_thread_num());
+            tmp[omp_get_thread_num()][node.x] += v[node.y] * node.v;
+        }
         res.clear();
         res.resize(n, 0);
-        for (auto &node : nodes) {
-            res[node.x] += v[node.y] * node.v;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < nthread; j++) {
+                res[i] += tmp[j][i];
+            }
         }
         return 0;
     }
 };
 
-// class dvector {
-// public:
-//     std::vector <double> v;
-//     dvector(int n) {
-//         v.clear();
-//         v.resize(n, 0);
-//     }
-//     dvector() {}
-// }
-
 double abs(double v) {
     return (v > 0) ? v : -v;
 }
 
-int main() {
+int main(int argc, char **argv) {
     FILE *pf = fopen("mat.txt", "r");
     int n;
+    nthread = omp_get_num_procs();
     fscanf(pf, "%d", &n);
+    if (argc > 1) {
+        nthread = atoi(argv[1]);
+    }
+    printf("%d\n", nthread);
     smatrix mat(n);
     std::vector<double> b(n);
     int cnt = 0;
@@ -100,7 +121,7 @@ int main() {
     }
 
     int niter = 0;
-    for (;;){
+    for (;;) {
         niter++;
         std::vector<double> tmp(n);
         double a = 0;
